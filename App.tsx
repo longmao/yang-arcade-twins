@@ -1,5 +1,5 @@
 /**
- * App.tsx · Yang Arcade Twins · Sprint 1 菜单 + 吃豆人 screen
+ * App.tsx · Yang Arcade Twins · v0.3 spec 重构 entry
  */
 import React, { useState } from 'react';
 import {
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { PacmanGame } from './src/games/pacman/PacmanGame';
+import { MazeGame } from './src/games/maze/MazeGame';
 import { ShooterGame } from './src/games/shooter/ShooterGame';
 
 type Screen = 'menu' | 'pacman' | 'shooter';
@@ -22,11 +22,12 @@ const GAMES = [
 
 function App() {
   const [screen, setScreen] = useState<Screen>('menu');
+  const [refreshKey, setRefreshKey] = useState(0);
   if (screen === 'pacman') {
     return (
       <SafeAreaView style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor="#0A0E27" />
-        <PacmanGame onQuit={() => setScreen('menu')} />
+        <MazeGame onQuit={() => setScreen('menu')} />
       </SafeAreaView>
     );
   }

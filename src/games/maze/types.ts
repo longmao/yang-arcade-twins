@@ -1,8 +1,9 @@
 /**
- * src/games/pacman/types.ts · 吃豆人核心类型(spec P1-C)
+ * src/games/maze/types.ts · spec §3.2 架构 + §8 spec 类型
  */
-export type Dir = 'L' | 'R' | 'U' | 'D' | '.';
 export type Tile = 'w' | '.' | ' ' | 'p';
+export type Dir = 'up' | 'down' | 'left' | 'right' | 'none';
+export type EnemyMode = 'scatter' | 'chase' | 'frightened' | 'eaten';
 export type Status = 'ready' | 'playing' | 'paused' | 'over' | 'win';
 
 export interface Pos { x: number; y: number }
@@ -12,6 +13,7 @@ export interface Ghost {
   pos: Pos;
   color: string;
   strategy: 'chase' | 'ambush' | 'flank' | 'shy';
+  mode: EnemyMode;
 }
 
 export interface State {
@@ -23,8 +25,8 @@ export interface State {
   score: number;
   pellets: number;
   lives: number;
-  powerModeTicks: number; // 0 = 不在能量模式
-  powerChain: number;     // 连吃鬼数(0..4)
+  powerModeTicks: number;
+  powerChain: number;
   status: Status;
   tick: number;
 }
