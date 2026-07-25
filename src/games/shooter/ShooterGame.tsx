@@ -1,34 +1,38 @@
 /**
- * src/games/shooter/ShooterGame.tsx · 纵向射击 RN 渲染 + 输入
- * 海信 Harness:input/output 通过 props,组件内只关绘制和状态机
+ * src/games/shooter/ShooterGame.tsx · spec §9 Shooter MVP entry
+ * Skia Canvas + 4 敌机 + 4 波 + 精英 + 强化 + 自动射击 + 60Hz
  */
-import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
-import { createInitial, movePlayer, shoot, tick } from './game';
-import type { Enemy, State } from './types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Dimensions,
+  GestureResponderEvent,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { createInitial, movePlayer, setPlayerTarget, tick, SHOOTER_W, SHOOTER_H, SHOOTER_TICK_MS } from './ShooterRuntime';
+import type { State } from './ShooterRuntime';
+import { ShooterRenderer } from './ShooterRenderer';
 import { PauseOverlay } from '../../shared/PauseOverlay';
 import { sfx } from '../../shared/audio';
 import { hapt } from '../../shared/haptics';
 import { pushTop3 } from '../../shared/storage';
 
-const { width: SW, height: SH } = Dimensions.get('window');
-
-const COLORS: Record<string, string> = {
-  basic: '#FF6B6B',
-  fast: '#FFE54B',
-  tank: '#A78BFA',
-  bomber: '#FF9F43',
-};
+const { width: WIN_W, height: WIN_H } = Dimensions.get('window');
+const SCALE = Math.min(WIN_W / SHOOTER_W, (WIN_H - 320) / SHOOTER_H);
+const BOARD_W = SHOOTER_W * SCALE;
+const BOARD_H = SHOOTER_H * SCALE;
 
 export function ShooterGame({ onQuit }: { onQuit: () => void }) {
   const [s, setS] = useState<State>(createInitial);
   const prevScore = useRef(0);
-  const prevCombo = useRef(0);
   const prevStatus = useRef('ready');
 
   useEffect(() => {
     if (s.status !== 'playing') return;
-    const id = setInterval(() => setS((p) => tick(p)), 60);
+    const id = setInterval(() => setS((p) => tick(p, Date.now())), SHOOTER_TICK_MS);
     return () => clearInterval(id);
   }, [s.status]);
 
@@ -41,14 +45,7 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
   }, [s.score]);
 
   useEffect(() => {
-    if (s.combo >= 3 && s.combo > prevCombo.current) {
-      // combo bonus hapt
-    }
-    prevCombo.current = s.combo;
-  }, [s.combo]);
-
-  useEffect(() => {
-    if (s.status === 'over' && prevStatus.current !== 'over') {
+    if ((s.status === 'over' || s.status === 'win') && prevStatus.current !== s.status) {
       sfx.die();
       hapt.die();
       pushTop3('YANG', s.score).catch(() => {});
@@ -56,77 +53,62 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
     prevStatus.current = s.status;
   }, [s.status, s.score]);
 
-  const move = (dx: number, dy: number) => setS((p) => movePlayer(p, dx, dy));
-  const onFire = () => setS((p) => shoot(p));
+  // 拖动玩家 (PanResponder)
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt: GestureResponderEvent) => {
+        const x = (evt.nativeEvent.locationX) / SCALE;
+        const y = (evt.nativeEvent.locationY) / SCALE;
+        setS((p) => setPlayerTarget(p, x, y));
+      },
+    }),
+  ).current;
+
+  const onKey = useCallback((dx: number, dy: number) => setS((p) => movePlayer(p, dx, dy)), []);
+  const bombsLeft = s.player.shield ? 1 : 0;
 
   return (
     <View style={styles.root}>
       <View style={styles.hud}>
         <Text style={styles.score}>SCORE {String(s.score).padStart(5, '0')}</Text>
-        <Text style={styles.combo}>×{s.combo}{s.maxCombo > 0 ? ` · max ${s.maxCombo}` : ''}</Text>
-        <Pressable
+        <Text style={styles.combo}>×{s.combo}{s.combo > 0 ? ` · max ${s.maxCombo}` : ''}</Text>
+        <Text style={styles.weapon}>L{s.player.weaponLevel} · ♥{s.player.hp}{s.player.shield ? '🛡' : ''}</Text>
+        <TouchableOpacity
           onPress={() => setS((p) => ({ ...p, status: p.status === 'paused' ? 'playing' : 'paused' }))}
           style={styles.pauseBtn}
+          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
         >
           <Text style={styles.pauseTxt}>{s.status === 'paused' ? '▶' : 'Ⅱ'}</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.playAreaWrap}>
-      <View style={styles.playArea}>
-        {/* 玩家 */}
-        <View
-          style={[
-            styles.player,
-            {
-              left: s.player.x * SW - 18,
-              top: s.player.y * SH - 18,
-            },
-          ]}
-        />
-        {/* 敌机 */}
-        {s.enemies.map((e) => (
-          <View
-            key={e.id}
-            style={[
-              styles.enemy,
-              { left: e.x * SW - 18, top: e.y * SH - 18, backgroundColor: COLORS[e.type] },
-            ]}
-          />
-        ))}
-        {/* 子弹 */}
-        {s.bullets.map((b) => (
-          <View
-            key={b.id}
-            style={[styles.bullet, { left: b.x * SW - 2, top: b.y * SH }]}
-          />
-        ))}
-      </View>
+      <View style={[styles.boardWrap, { width: BOARD_W, height: BOARD_H }]} {...pan.panHandlers}>
+        <ShooterRenderer state={s} width={BOARD_W} height={BOARD_H} />
       </View>
 
       <View style={styles.dpad}>
         <View style={styles.dpadRow}>
-          <Pad label="◀" onPress={() => move(-0.05, 0)} />
-          <Pad label="▲" onPress={() => move(0, -0.04)} />
-          <Pad label="▶" onPress={() => move(0.05, 0)} />
-          <Pad label="▼" onPress={() => move(0, 0.04)} />
+          <Pad label="◀" onPress={() => onKey(-20, 0)} />
+          <Pad label="▲" onPress={() => onKey(0, -20)} />
+          <Pad label="▶" onPress={() => onKey(20, 0)} />
+          <Pad label="▼" onPress={() => onKey(0, 20)} />
         </View>
       </View>
 
-      <Pressable
-        onPress={onFire}
-        style={({ pressed }) => [styles.fireBtn, pressed && { opacity: 0.6 }]}
-      >
-        <Text style={styles.fireTxt}>FIRE</Text>
-      </Pressable>
-
-      {s.status === 'over' && (
+      {(s.status === 'over' || s.status === 'win') && (
         <View style={styles.center}>
-          <Text style={styles.gameover}>GAME OVER</Text>
-          <Text style={styles.gameoverSub}>{s.score} pts · max combo ×{s.maxCombo}</Text>
-          <Pressable style={styles.menuBtn} onPress={onQuit}>
-            <Text style={styles.menuTxt}>Back to menu</Text>
-          </Pressable>
+          <Text style={styles.gameover}>{s.status === 'win' ? 'STAGE CLEAR!' : 'GAME OVER'}</Text>
+          <Text style={styles.gameoverSub}>{s.score} pts · wave {s.wave + 1} · max combo ×{s.maxCombo}</Text>
+          <View style={styles.endBtns}>
+            <TouchableOpacity style={styles.endBtn} onPress={() => setS(createInitial())} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+              <Text style={styles.endBtnTxt}>RESTART</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.endBtn, styles.endBtnAlt]} onPress={onQuit} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+              <Text style={[styles.endBtnTxt, styles.endBtnTxtAlt]}>MENU</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -142,33 +124,31 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
 
 function Pad({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.pad, pressed && { opacity: 0.5 }]}>
+    <TouchableOpacity onPress={onPress} style={styles.pad} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
       <Text style={styles.padTxt}>{label}</Text>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0E27', paddingTop: 56 },
-  hud: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
-  score: { color: '#FFE54B', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
-  combo: { color: '#FF6B6B', fontSize: 18, fontWeight: '800' },
+  root: { flex: 1, backgroundColor: '#0A0E27', alignItems: 'center', paddingTop: 56 },
+  hud: { width: '92%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 12 },
+  score: { color: '#FFE54B', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
+  combo: { color: '#FF6B6B', fontSize: 16, fontWeight: '800' },
+  weapon: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   pauseBtn: { paddingVertical: 6, paddingHorizontal: 14, backgroundColor: '#1A1F4D', borderRadius: 8 },
   pauseTxt: { color: '#FFF', fontSize: 18, fontWeight: '800' },
-  playAreaWrap: { flex: 1, position: 'relative' },
-  playArea: { flex: 1, position: 'relative' },
-  player: { position: 'absolute', width: 36, height: 36, backgroundColor: '#FFE54B', borderRadius: 6 },
-  enemy: { position: 'absolute', width: 36, height: 36, borderRadius: 18 },
-  bullet: { position: 'absolute', width: 4, height: 14, backgroundColor: '#FFE54B' },
+  boardWrap: { backgroundColor: '#000', borderWidth: 1, borderColor: '#1F2557' },
   dpad: { paddingVertical: 12, paddingBottom: 16 },
   dpadRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
   pad: { width: 56, height: 44, backgroundColor: '#1A1F4D', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   padTxt: { color: '#FFF', fontSize: 20, fontWeight: '800' },
-  fireBtn: { position: 'absolute', right: 20, bottom: 90, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: '#FF6B6B', borderRadius: 12 },
-  fireTxt: { color: '#0A0E27', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  center: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,14,39,0.7)' },
-  gameover: { color: '#FFE54B', fontSize: 40, fontWeight: '900', letterSpacing: 4 },
-  gameoverSub: { color: '#FFF', fontSize: 18, marginTop: 8 },
-  menuBtn: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#FFE54B', borderRadius: 10 },
-  menuTxt: { color: '#0A0E27', fontSize: 16, fontWeight: '800' },
+  center: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,14,39,0.85)', gap: 16 },
+  gameover: { color: '#FFE54B', fontSize: 36, fontWeight: '900', letterSpacing: 4 },
+  gameoverSub: { color: '#FFF', fontSize: 16 },
+  endBtns: { flexDirection: 'row', gap: 16, marginTop: 24 },
+  endBtn: { paddingVertical: 14, paddingHorizontal: 24, backgroundColor: '#FFE54B', borderRadius: 12 },
+  endBtnAlt: { backgroundColor: '#1A1F4D' },
+  endBtnTxt: { color: '#0A0E27', fontSize: 16, fontWeight: '900', letterSpacing: 2 },
+  endBtnTxtAlt: { color: '#FFF' },
 });
