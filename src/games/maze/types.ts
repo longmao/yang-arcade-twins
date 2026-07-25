@@ -27,6 +27,7 @@ export interface State {
   lives: number;
   powerModeTicks: number;
   powerChain: number;
+  invulnTicks: number;
   status: Status;
   tick: number;
 }
