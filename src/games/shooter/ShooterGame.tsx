@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AppState,
   Dimensions,
   GestureResponderEvent,
   PanResponder,
@@ -54,6 +55,16 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
     }
     prevScore.current = s.score;
   }, [s.score]);
+
+  // spec §6 BackgroundMode: app 入后台 → game 自动暂停;回前台 → 暂停屏
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'background' || next === 'inactive') {
+        setS((p) => (p.status === 'playing' ? { ...p, status: 'paused' } : p));
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if ((s.status === 'over' || s.status === 'win') && prevStatus.current !== s.status) {

@@ -4,7 +4,7 @@
  * spec §3.2 #3 fully imperative: TODO Sprint 4 把 tick 改 useRef + requestAnimationFrame
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureDetector, Gesture, Directions } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { COLS, ROWS } from './MazeConfig';
@@ -35,6 +35,16 @@ export function MazeGame({ onQuit }: { onQuit: () => void }) {
     const id = setInterval(() => setS((p) => tick(p)), TICK_MS);
     return () => clearInterval(id);
   }, [s.status]);
+
+  // spec §6 BackgroundMode: app 入后台/锁屏 → game 自动暂停;回前台 → 显示暂停屏(不补算)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'background' || next === 'inactive') {
+        setS((p) => (p.status === 'playing' ? { ...p, status: 'paused' } : p));
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (s.score > prevScore.current) {
