@@ -1,10 +1,9 @@
 /**
- * src/games/pacman/types.ts · 吃豆人核心类型
- * 海信 Harness #1:单一职责,无外部依赖
+ * src/games/pacman/types.ts · 吃豆人核心类型(spec P1-C)
  */
 export type Dir = 'L' | 'R' | 'U' | 'D' | '.';
-export type Tile = 'w' | '.' | ' ' | 'p'; // wall · pellet · empty · power pellet
-export type Status = 'ready' | 'playing' | 'paused' | 'over';
+export type Tile = 'w' | '.' | ' ' | 'p';
+export type Status = 'ready' | 'playing' | 'paused' | 'over' | 'win';
 
 export interface Pos { x: number; y: number }
 
@@ -23,6 +22,9 @@ export interface State {
   ghosts: Ghost[];
   score: number;
   pellets: number;
+  lives: number;
+  powerModeTicks: number; // 0 = 不在能量模式
+  powerChain: number;     // 连吃鬼数(0..4)
   status: Status;
-  tick: number; // 单调递增,驱动动画帧
+  tick: number;
 }
