@@ -3,11 +3,11 @@
  */
 import React, { useState } from 'react';
 import {
-  Pressable,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { PacmanGame } from './src/games/pacman/PacmanGame';
@@ -47,22 +47,21 @@ function App() {
       </View>
       <View style={styles.grid}>
         {GAMES.map((g) => (
-          <Pressable
+          <TouchableOpacity
             key={g.id}
-            style={({ pressed }) => [
-              styles.card,
-              { borderColor: g.color, opacity: pressed ? 0.7 : g.coming ? 0.4 : 1 },
-            ]}
-            disabled={g.coming}
+            activeOpacity={0.7}
             onPress={() => {
               if (g.id === 'pacman') setScreen('pacman');
               else if (g.id === 'shooter') setScreen('shooter');
             }}
+            style={[styles.card, { borderColor: g.color, opacity: g.coming ? 0.4 : 1 }]}
+            disabled={g.coming}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
           >
             <Text style={[styles.cardTitle, { color: g.color }]}>{g.title}</Text>
             <Text style={styles.cardSub}>{g.subtitle}</Text>
             {g.coming && <Text style={styles.coming}>coming soon</Text>}
-          </Pressable>
+          </TouchableOpacity>
         ))}
       </View>
       <Text style={styles.footer}>v0.1 · BDD-ready</Text>

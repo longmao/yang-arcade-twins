@@ -2,7 +2,7 @@
  * src/shared/PauseOverlay.tsx · 跨游戏暂停层(Sprint 1 共用)
  */
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type Props = { visible: boolean; onResume: () => void; onRestart: () => void; onQuit: () => void };
 
@@ -22,16 +22,14 @@ export function PauseOverlay({ visible, onResume, onRestart, onQuit }: Props) {
 
 function Btn({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.7}
       onPress={onPress}
-      style={({ pressed }) => [
-        S.btn,
-        primary && S.btnPrimary,
-        pressed && { opacity: 0.7 },
-      ]}
+      style={[S.btn, primary && S.btnPrimary]}
+      hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
     >
       <Text style={[S.btnText, primary && S.btnTextPrimary]}>{label}</Text>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
