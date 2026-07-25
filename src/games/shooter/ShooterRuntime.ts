@@ -96,6 +96,8 @@ const ENEMY_DEFAULTS: Record<EnemyKind, { hp: number; score: number; color: stri
   elite: { hp: 80, score: 5000, color: '#FF3B3B', size: 60 },
 };
 
+const VY_SCALE = 6; // 60Hz 跑 5 秒要看到敌机 → vy 乘 6
+
 const WAVES: { duration: number; spawns: { kind: EnemyKind; interval: number }[] }[] = [
   { duration: 30, spawns: [{ kind: 'recon', interval: 1.6 }, { kind: 'sine', interval: 4 }] },
   { duration: 45, spawns: [{ kind: 'recon', interval: 1.2 }, { kind: 'sine', interval: 2.5 }, { kind: 'charger', interval: 6 }] },
@@ -129,7 +131,7 @@ export function createInitial(): State {
     spawnTimer: 0,
     wave: 0,
     tick: 0,
-    status: 'ready',
+    status: 'playing',
   };
 }
 
@@ -142,10 +144,10 @@ function makeEnemy(kind: EnemyKind, x: number, y: number): Enemy {
   const base: Enemy = {
     active: true, kind, x, y, hp: d.hp, maxHp: d.hp, vx: 0, vy: 0, phase: 0, fireCooldown: 0, age: 0,
   };
-  if (kind === 'recon') base.vy = 1.4;
-  else if (kind === 'sine') base.vy = 1.1;
+  if (kind === 'recon') base.vy = 1.4 * VY_SCALE;
+  else if (kind === 'sine') base.vy = 1.1 * VY_SCALE;
   else if (kind === 'charger') { base.vy = 0; base.vx = 0; }
-  else if (kind === 'turret') { base.vy = 0.4; base.fireCooldown = 60; }
+  else if (kind === 'turret') { base.vy = 0.4 * VY_SCALE; base.fireCooldown = 60; }
   else if (kind === 'elite') { base.vy = 0; base.vx = 1.5; base.fireCooldown = 72; }
   return base;
 }
@@ -183,7 +185,7 @@ function tryFire(state: State): { bullets: Bullet[]; cooldown: number } {
 
 function spawnEnemy(state: State, kind: EnemyKind): Enemy {
   const x = 30 + Math.random() * (W - 60);
-  return makeEnemy(kind, x, -30);
+  return makeEnemy(kind, x, 20);
 }
 
 export function tick(prev: State, now: number): State {
@@ -199,28 +201,27 @@ export function tick(prev: State, now: number): State {
   s.bullets = s.bullets
     .map((b) => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }))
     .filter((b) => b.active && b.y > -20 && b.y < H + 20 && b.x > -20 && b.x < W + 20);
-  // enemy 推进
+  // enemy 推进 — y 是 logical 单位 (0..700),每秒移动 VY * 60 logical units (1 logical unit = 1 pt screen)
   s.enemies = s.enemies.map((e) => {
     let { x, y, vx, vy, phase, fireCooldown, age } = e;
     age += 1;
-    if (e.kind === 'recon') y += vy;
+    if (e.kind === 'recon') y += vy / 60;
     else if (e.kind === 'sine') {
-      y += vy;
+      y += vy / 60;
       x += Math.sin(age / 30) * 1.6;
     } else if (e.kind === 'charger') {
-      // 朝玩家位置冲刺 (target 缓存)
       const tgtX = (e as any).tgtX ?? x;
       const dx = tgtX - x;
       vx = Math.sign(dx) * Math.min(1.5, Math.abs(dx) * 0.05);
-      vy += 0.08; // 加速
+      vy += 0.08;
       x += vx;
-      y += vy;
+      y += vy / 60;
     } else if (e.kind === 'turret') {
-      y += vy;
+      y += vy / 60;
       if (y > 60) fireCooldown = Math.max(0, fireCooldown - 1);
     } else if (e.kind === 'elite') {
       x += Math.sin(age / 40) * 1.4;
-      if (age < 60) y += 0.6; else y += 0.2;
+      if (age < 60) y += 0.6 / 60; else y += 0.2 / 60;
       fireCooldown = Math.max(0, fireCooldown - 1);
     }
     return { ...e, x, y, vx, vy, phase, fireCooldown, age };

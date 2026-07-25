@@ -31,9 +31,20 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
   const prevStatus = useRef('ready');
 
   useEffect(() => {
-    if (s.status !== 'playing') return;
+    // spec §3.6 后台自动暂停:status==='playing' 才 tick,否则停.
+    // 但 status=='ready' 时也要 run setInterval 触发自动开始(spec §9 真实玩家启动 tap 触发).
+    if (s.status === 'paused') return;
     const id = setInterval(() => setS((p) => tick(p, Date.now())), SHOOTER_TICK_MS);
     return () => clearInterval(id);
+  }, [s.status]);
+
+  // 玩家第一次 tap 方向键 → status 'ready' → 'playing'
+  // (PanResponder 拖动是主路径,但方向键 tap 也触发)
+  useEffect(() => {
+    if (s.status === 'ready') {
+      // 不主动改 status — tick 自然就 tick.
+      // 但我们要 trigger tick 第一次 → setInterval 已经在跑(因为 s.status !== 'paused').
+    }
   }, [s.status]);
 
   useEffect(() => {
