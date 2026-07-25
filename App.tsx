@@ -11,12 +11,13 @@ import {
   View,
 } from 'react-native';
 import { PacmanGame } from './src/games/pacman/PacmanGame';
+import { ShooterGame } from './src/games/shooter/ShooterGame';
 
-type Screen = 'menu' | 'pacman';
+type Screen = 'menu' | 'pacman' | 'shooter';
 
 const GAMES = [
   { id: 'pacman', title: 'Pac-Man', subtitle: '迷宫 + 4 鬼 AI', color: '#FFE54B', coming: false },
-  { id: 'shooter', title: 'Shooter', subtitle: '纵向卷轴 + 弹幕', color: '#FF6B6B', coming: true },
+  { id: 'shooter', title: 'Shooter', subtitle: '纵向卷轴 + 弹幕 + 连击', color: '#FF6B6B', coming: false },
 ];
 
 function App() {
@@ -26,6 +27,14 @@ function App() {
       <SafeAreaView style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor="#0A0E27" />
         <PacmanGame onQuit={() => setScreen('menu')} />
+      </SafeAreaView>
+    );
+  }
+  if (screen === 'shooter') {
+    return (
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="dark-content" backgroundColor="#0A0E27" />
+        <ShooterGame onQuit={() => setScreen('menu')} />
       </SafeAreaView>
     );
   }
@@ -47,6 +56,7 @@ function App() {
             disabled={g.coming}
             onPress={() => {
               if (g.id === 'pacman') setScreen('pacman');
+              else if (g.id === 'shooter') setScreen('shooter');
             }}
           >
             <Text style={[styles.cardTitle, { color: g.color }]}>{g.title}</Text>
