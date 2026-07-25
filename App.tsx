@@ -1,10 +1,7 @@
 /**
- * App.tsx · Yang Arcade Twins · v0.1 主菜单占位
- * Sprint 0:主菜单双入口(Pac-Man active · Shooter coming)
- * Sprint 1:替换 Pac-Man 入口为真游戏 screen
- * Sprint 2:替换 Shooter 入口为真游戏 screen
+ * App.tsx · Yang Arcade Twins · Sprint 1 菜单 + 吃豆人 screen
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -13,6 +10,9 @@ import {
   Text,
   View,
 } from 'react-native';
+import { PacmanGame } from './src/games/pacman/PacmanGame';
+
+type Screen = 'menu' | 'pacman';
 
 const GAMES = [
   { id: 'pacman', title: 'Pac-Man', subtitle: '迷宫 + 4 鬼 AI', color: '#FFE54B', coming: false },
@@ -20,6 +20,15 @@ const GAMES = [
 ];
 
 function App() {
+  const [screen, setScreen] = useState<Screen>('menu');
+  if (screen === 'pacman') {
+    return (
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="dark-content" backgroundColor="#0A0E27" />
+        <PacmanGame onQuit={() => setScreen('menu')} />
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#0A0E27" />
@@ -36,7 +45,9 @@ function App() {
               { borderColor: g.color, opacity: pressed ? 0.7 : g.coming ? 0.4 : 1 },
             ]}
             disabled={g.coming}
-            onPress={() => console.log(`open ${g.id}`)}
+            onPress={() => {
+              if (g.id === 'pacman') setScreen('pacman');
+            }}
           >
             <Text style={[styles.cardTitle, { color: g.color }]}>{g.title}</Text>
             <Text style={styles.cardSub}>{g.subtitle}</Text>
