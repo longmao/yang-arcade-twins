@@ -72,6 +72,7 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
         </Pressable>
       </View>
 
+      <View style={styles.playAreaWrap}>
       <View style={styles.playArea}>
         {/* 玩家 */}
         <View
@@ -100,6 +101,7 @@ export function ShooterGame({ onQuit }: { onQuit: () => void }) {
             style={[styles.bullet, { left: b.x * SW - 2, top: b.y * SH }]}
           />
         ))}
+      </View>
       </View>
 
       <View style={styles.dpad}>
@@ -147,21 +149,22 @@ function Pad({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0E27', paddingTop: 60 },
+  root: { flex: 1, backgroundColor: '#0A0E27', paddingTop: 56 },
   hud: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
   score: { color: '#FFE54B', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
   combo: { color: '#FF6B6B', fontSize: 18, fontWeight: '800' },
   pauseBtn: { paddingVertical: 6, paddingHorizontal: 14, backgroundColor: '#1A1F4D', borderRadius: 8 },
   pauseTxt: { color: '#FFF', fontSize: 18, fontWeight: '800' },
+  playAreaWrap: { flex: 1, position: 'relative' },
   playArea: { flex: 1, position: 'relative' },
   player: { position: 'absolute', width: 36, height: 36, backgroundColor: '#FFE54B', borderRadius: 6 },
   enemy: { position: 'absolute', width: 36, height: 36, borderRadius: 18 },
   bullet: { position: 'absolute', width: 4, height: 14, backgroundColor: '#FFE54B' },
-  dpad: { paddingVertical: 12 },
+  dpad: { paddingVertical: 12, paddingBottom: 16 },
   dpadRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
   pad: { width: 56, height: 44, backgroundColor: '#1A1F4D', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   padTxt: { color: '#FFF', fontSize: 20, fontWeight: '800' },
-  fireBtn: { position: 'absolute', right: 20, bottom: 100, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: '#FF6B6B', borderRadius: 12 },
+  fireBtn: { position: 'absolute', right: 20, bottom: 90, paddingVertical: 14, paddingHorizontal: 28, backgroundColor: '#FF6B6B', borderRadius: 12 },
   fireTxt: { color: '#0A0E27', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
   center: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,14,39,0.7)' },
   gameover: { color: '#FFE54B', fontSize: 40, fontWeight: '900', letterSpacing: 4 },

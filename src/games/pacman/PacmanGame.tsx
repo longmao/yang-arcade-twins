@@ -21,8 +21,13 @@ import { pushTop3 } from '../../shared/storage';
 const TICK_MS = 100;
 
 function tileSize() {
-  const w = Dimensions.get('window').width;
-  return Math.floor(Math.min(w * 0.92 / COLS, 38));
+  const { width, height } = Dimensions.get('window');
+  // HUD ≈40, dpad ≈120, padding ≈80 → 留 ~240 给 board
+  const availW = width - 32;
+  const availH = height - 280;
+  const byW = Math.floor(availW / COLS);
+  const byH = Math.floor(availH / ROWS);
+  return Math.min(byW, byH, 40);
 }
 
 export function PacmanGame({ onQuit }: { onQuit: () => void }) {
@@ -69,6 +74,7 @@ export function PacmanGame({ onQuit }: { onQuit: () => void }) {
           <Text style={styles.pauseTxt}>{s.status === 'paused' ? '▶' : 'Ⅱ'}</Text>
         </Pressable>
       </View>
+      <View style={styles.boardWrap}>
       <View style={[styles.board, { width: ts * COLS, height: ts * ROWS }]}>
         {s.grid.map((row, y) =>
           row.map((t, x) => (
@@ -115,10 +121,13 @@ export function PacmanGame({ onQuit }: { onQuit: () => void }) {
           />
         ))}
       </View>
+      </View>
 
       <View style={styles.dpad}>
         <View style={styles.dpadRow}>
+          <View style={styles.dpadSpacer} />
           <Pad label="↑" onPress={() => move('U')} />
+          <View style={styles.dpadSpacer} />
         </View>
         <View style={styles.dpadRow}>
           <Pad label="←" onPress={() => move('L')} />
@@ -159,11 +168,12 @@ function Pad({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0E27', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 60 },
-  hud: { width: '92%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  root: { flex: 1, backgroundColor: '#0A0E27', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 56 },
+  hud: { width: '92%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   score: { color: '#FFE54B', fontSize: 22, fontWeight: '900', letterSpacing: 2 },
   pauseBtn: { paddingVertical: 6, paddingHorizontal: 14, backgroundColor: '#1A1F4D', borderRadius: 8 },
   pauseTxt: { color: '#FFF', fontSize: 18, fontWeight: '800' },
+  boardWrap: { flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' },
   board: { position: 'relative', backgroundColor: '#0A0E27', borderWidth: 2, borderColor: '#1F2557' },
   cell: { position: 'absolute', backgroundColor: 'transparent' },
   wall: { backgroundColor: '#1F2557' },
@@ -171,9 +181,10 @@ const styles = StyleSheet.create({
   power: { backgroundColor: 'transparent', borderWidth: 2, borderColor: '#FFE54B', borderRadius: 999 },
   player: { position: 'absolute', backgroundColor: '#FFE54B' },
   ghost: { position: 'absolute' },
-  dpad: { marginTop: 24, gap: 8 },
-  dpadRow: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
-  pad: { width: 64, height: 48, backgroundColor: '#1A1F4D', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  dpad: { paddingBottom: 16, gap: 6 },
+  dpadRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  dpadSpacer: { width: 56 },
+  pad: { width: 56, height: 44, backgroundColor: '#1A1F4D', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   padTxt: { color: '#FFF', fontSize: 22, fontWeight: '900' },
   center: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,14,39,0.7)' },
   gameover: { color: '#FFE54B', fontSize: 40, fontWeight: '900', letterSpacing: 4 },
