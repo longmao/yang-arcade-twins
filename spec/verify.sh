@@ -45,7 +45,7 @@ else
 fi
 
 # [4] spec 目录结构
-for d in src/games/pacman src/shared features scripts/games; do
+for d in src/games/maze src/games/shooter src/shared features scripts/games; do
   if [[ -d "$d" ]]; then
     PASS+=("dir $d")
   else

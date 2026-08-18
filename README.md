@@ -82,3 +82,16 @@ docs/verify/                  # Loop 产物(后续填)
 - [ ] 重启 app · 最高分保留
 - [ ] iPad 跑通 · 触控不重叠
 - [ ] 5-min 自由玩 · 娃评分 ≥ 6/10
+
+---
+
+## Design Reference · iOS DESIGN.md (2026-07-29)
+
+> Sprint 2 纵向射击 + 主菜单/计分板 screen 改 UI 前,先查 iOS 真实 App 规范。
+
+- **Skill**:`~/.agents/skills/awesome-ios-design-md`(200 DESIGN.md + Expo flavor)
+- **本项目常用 reference**:
+  - `design-md/misc/` — `crossy-road/` / `monument-valley/` / `altos-odyssey/` 街机 canvas + HUD 范式
+  - `design-md/productivity/` — `apple-clock/` 的 tab bar + 主屏布局范式(主菜单 / 排行榜)
+- **用法**:写新 screen 时,拷对应 `DESIGN-expo.md` 到 `docs/design-ref-<app>.md`,Claude Code 拿去当上下文
+- **🚫 本项目原创作风**:本项目走 8-bit 街机风,**不强行套** Spotify/Notion 的设计 token,只在主菜单/计分板用参考
